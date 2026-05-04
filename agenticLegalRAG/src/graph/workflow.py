@@ -33,6 +33,7 @@ class LegalRAGWorkflow:
             "relevant_precedents": [],
             "legal_opinion": "",
             "citations": [],
+            "grade": None,
             "grader_feedback": None,
         }
 
@@ -48,8 +49,17 @@ class LegalRAGWorkflow:
 
             # If grading fails, regenerate synthesis with feedback (up to 1 retry)
             if state.get("grade") == "FAIL":
-                state = self.synthesis_node.execute(state)
-                state = self.grader_node.execute(state)  # Re-grade after regeneration
+                # Hallucination guard: drop stale retrieval context before a rewrite pass.
+                state["retrieved_docs"] = []
+                state["relevant_precedents"] = []
+
+                state = self.retrieval_node.execute(state)
+                if state.get("search_plan") and state["search_plan"].needs_web_search:
+                    state = self.web_search_node.execute(state)
+                else:
+                    state = self.reranker_node.execute(state)
+                    state = self.synthesis_node.execute(state)
+                    state = self.grader_node.execute(state)  # Re-grade after regeneration
 
         return state
 

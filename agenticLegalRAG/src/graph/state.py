@@ -1,6 +1,5 @@
-from typing import Annotated, List, Optional, TypedDict
+from typing import List, Optional, TypedDict
 from pydantic import BaseModel, Field
-import operator
 
 # --- 1. Pydantic Models for Evidence Tracking ---
 
@@ -18,13 +17,7 @@ class QueryPlan(BaseModel):
     metadata_filters: dict = Field(default_factory=dict)
     needs_web_search: bool = False
 
-# --- 2. The Reducer Function ---
-# This allows multiple retrieval steps to 'add' documents to the list 
-# without overwriting previous findings.
-def add_documents(existing: List[LegalDocument], new: List[LegalDocument]) -> List[LegalDocument]:
-    return existing + new
-
-# --- 3. The LangGraph State Definition ---
+# --- 2. The State Definition ---
 
 class LegalState(TypedDict):
     # User Inputs
@@ -33,9 +26,8 @@ class LegalState(TypedDict):
     # Processed Intent (The 'Search Plan')
     search_plan: Optional[QueryPlan]
     
-    # Evidence Collection 
-    # (Annotated with our reducer to allow multi-step gathering)
-    retrieved_docs: Annotated[List[LegalDocument], add_documents]
+    # Evidence Collection
+    retrieved_docs: List[LegalDocument]
     
     # Refined Evidence (After the Re-ranker node filters the noise)
     relevant_precedents: List[LegalDocument]
@@ -43,5 +35,6 @@ class LegalState(TypedDict):
     # Final Outputs
     legal_opinion: str
     citations: List[str]
+    grade: Optional[str]
      # For potential future use in grading the quality of the opinion
     grader_feedback: Optional[str] = None

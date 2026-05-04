@@ -10,6 +10,8 @@ from google import genai
 from .state import LegalDocument, LegalState, QueryPlan
 from ..tools.search_tool import SearchTool
 
+SUPPORTED_TOPICS = {"housing", "contract", "employment", "tax", "fraud", "tenant", "landlord"}
+
 
 def _normalize_query(query: str) -> str:
     return " ".join(query.strip().split())
@@ -19,7 +21,7 @@ def _extract_metadata_filters(query: str) -> Dict[str, str]:
     filters: Dict[str, str] = {}
     lower_query = query.lower()
 
-    for topic in ["housing", "contract", "employment", "tax", "fraud", "tenant", "landlord"]:
+    for topic in SUPPORTED_TOPICS:
         if topic in lower_query:
             filters["topic"] = topic
             break
@@ -75,7 +77,7 @@ class QueryAnalysisNode(Node):
 
         try:
             response = self.client.chat.completions.create(
-                model="llama3-8b-8192",
+                model="llama-3.1-8b-instant",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
                 max_tokens=200
@@ -88,7 +90,10 @@ class QueryAnalysisNode(Node):
 
             metadata_filters = {}
             if analysis.get("topics"):
-                metadata_filters["topic"] = analysis["topics"].split(",")[0].strip()
+                parsed_topic = analysis["topics"].split(",")[0].strip().lower()
+                # Ignore broad/unknown topics that over-constrain retrieval.
+                if parsed_topic in SUPPORTED_TOPICS:
+                    metadata_filters["topic"] = parsed_topic
             if analysis.get("year") and analysis["year"] != "null":
                 metadata_filters["year"] = analysis["year"]
 
@@ -123,9 +128,7 @@ class RetrievalNode(Node):
             search_plan.refined_query,
             filters=search_plan.metadata_filters,
         )
-
-        if not documents:
-            search_plan.needs_web_search = True
+        search_plan.needs_web_search = not bool(documents)
 
         state["retrieved_docs"] = documents
         state["search_plan"] = search_plan
@@ -203,12 +206,12 @@ class SynthesisNode(Node):
 
         try:
             response = self.client.models.generate_content(
-                model="gemini-1.5-flash",
+                model="gemini-2.0-flash",
                 contents=prompt,
-                config=genai.GenerateContentConfig(
-                    temperature=0.1,
-                    max_output_tokens=1000,
-                )
+                config={
+                    "temperature": 0.1,
+                    "max_output_tokens": 1000,
+                },
             )
 
             state["legal_opinion"] = response.text
@@ -216,6 +219,7 @@ class SynthesisNode(Node):
         except Exception as e:
             # Fallback to simple synthesis if LLM fails
             print(f"LLM synthesis failed: {e}, using fallback")
+            citations = []
             report_lines: List[str] = [f"Legal Opinion on: {original_query}\n"]
             report_lines.append("Based on the following relevant precedents:")
 
@@ -269,7 +273,7 @@ class GraderNode(Node):
 
         try:
             response = self.client.chat.completions.create(
-                model="llama3-8b-8192",
+                model="llama-3.1-8b-instant",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
                 max_tokens=500  # Increased to allow for explanation
