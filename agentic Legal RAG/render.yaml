@@ -11,5 +11,4 @@ services:
         sync: false
       - key: GMINI_API_KEY
         sync: false
-      - key: TAVILY_API_KEY
-        sync: false
+      
