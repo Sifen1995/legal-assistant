@@ -1,0 +1,22 @@
+# LangGraph & Orchestration
+langgraph
+langchain-google-genai
+langchain-groq
+langchain-community
+
+# Vector Database & Embeddings
+chromadb
+sentence-transformers
+pypdf
+
+# Modern SDKs
+google-genai
+groq
+
+# Utilities
+pydantic
+python-dotenv
+aiofiles
+fastapi
+uvicorn
+langchain-tavily

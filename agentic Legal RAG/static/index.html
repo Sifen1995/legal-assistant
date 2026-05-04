@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agentic Legal RAG</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Agentic Legal RAG</h1>
+    <p class="subtitle">Ask a legal question and get an opinion with citations.</p>
+
+    <form id="query-form">
+      <label for="query">Query</label>
+      <textarea id="query" name="query" rows="5" placeholder="What are tenant rights for eviction in 2024?" required></textarea>
+
+      <label for="persistDir">Persist Directory</label>
+      <input id="persistDir" name="persistDir" type="text" value="chroma_store" />
+
+      <label for="ingestPath">Ingest PDF Path (optional)</label>
+      <input id="ingestPath" name="ingestPath" type="text" placeholder="data/new_law.pdf" />
+
+      <button type="submit">Run Query</button>
+    </form>
+
+    <section id="status" class="status" aria-live="polite"></section>
+
+    <section class="result">
+      <h2>Legal Opinion</h2>
+      <pre id="legal-opinion">No result yet.</pre>
+    </section>
+
+    <section class="result">
+      <h2>Citations</h2>
+      <ul id="citations"></ul>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
